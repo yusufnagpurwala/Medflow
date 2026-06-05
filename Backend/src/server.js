@@ -7,6 +7,7 @@ const AuthRouter = require('./routes/auth');
 const appointmentRouter = require('./routes/appointment')
 const recordRouter = require('./routes/record')
 const userRouter = require('./routes/users');
+const adminRouter = require('./routes/admin');
 const connectDB = require('./config/db');
 const { checkAuth, restrictTo } = require('./middlewares/authMiddleware');
 const app = express();
@@ -16,7 +17,10 @@ const PORT = 8000;
 connectDB(process.env.MONGO_URI);
 
 //middlewares
-app.use(cors());
+app.use(cors({
+    origin: process.env.CLIENT_URL || 'http://localhost:3000',
+    credentials: true
+}));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
@@ -26,6 +30,7 @@ app.get('/', (req, res) => res.json({ message: 'MedFlow backend running 🚀'}))
 app.use('/api/auth', AuthRouter);
 app.use(checkAuth)
 app.use('/api/users', userRouter);
+app.use('/api/admin', adminRouter);
 app.use('/api/appointments', appointmentRouter);
 app.use('/api/records', recordRouter);
 
