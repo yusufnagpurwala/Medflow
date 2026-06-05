@@ -103,6 +103,6 @@ exports.updateRecord = async (req, res) => {
 
         return res.status(200).json({ success: true,message: 'Record updated', data: record });
     } catch (error) {
-        res.status(500).json({ success: false, message: err.message });
+        res.status(500).json({ success: false, message: error.message });
     }
 }

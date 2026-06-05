@@ -1,8 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import {
-  Container,
-  Paper,
-  Typography,
   TextField,
   Button,
   Stack,
@@ -11,6 +8,7 @@ import {
   Alert,
   Snackbar,
 } from '@mui/material';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import dayjs from 'dayjs';
 
 import { useAuthStore } from '@/store/authStore';
@@ -18,10 +16,10 @@ import { useRouter } from 'next/router';
 import api from '@/lib/api';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { DateTimePicker, LocalizationProvider } from '@mui/x-date-pickers';
+import { AppShell, PageHeader, FormCard } from '@/components';
 
 export default function CreateAppointment() {
   const user = useAuthStore((s) => s.user);
-  const token = useAuthStore((s) => s.token);
   const isHydrated = useAuthStore((s) => s.isHydrated);
 
   const router = useRouter();
@@ -38,7 +36,7 @@ export default function CreateAppointment() {
   useEffect(() => {
     if (!isHydrated) return;
 
-    if (!token) {
+    if (!user) {
       router.push('/login');
       return;
     }
@@ -46,24 +44,23 @@ export default function CreateAppointment() {
     if (user?.role !== 'patient') {
       router.push(`/dashboard/${user?.role}`);
     }
-  }, [isHydrated, token, user, router]);
+  }, [isHydrated, user, router]);
 
   useEffect(() => {
     const fetchDoctors = async () => {
       setLoadingDoctors(true);
       try {
         const res = await api.get('/users/doctors');
-        console.log('Doctors fetched:', res.data);
         setDoctors(res.data.data || []);
       } catch (err) {
-        console.error('Failed to fetch doctors', err);
+        // swallow fetch error; doctor list falls back to empty
       } finally {
         setLoadingDoctors(false);
       }
     };
 
-    if (token) fetchDoctors();
-  }, [token]);
+    if (user) fetchDoctors();
+  }, [user]);
 
   const isValid =
     selectedDoctor &&
@@ -73,19 +70,18 @@ export default function CreateAppointment() {
 
   const handleSubmit = async () => {
     setError('');
-    setSubmitting(true);
     if (!isValid) {
       setError('Please fill all fields correctly.');
       return;
     }
+    setSubmitting(true);
 
     try {
-      const res = await api.post('/appointments/create-appointment', {
+      await api.post('/appointments/create-appointment', {
         doctorId: selectedDoctor?._id,
         appointmentDate: appointmentDate.toISOString(),
         reason: reason.trim(),
       });
-      console.log('Response: ', res.data);
       localStorage.setItem(
         'snackbar',
         JSON.stringify({ open: true, message: 'Appointment Booked!', severity: 'success' })
@@ -103,16 +99,25 @@ export default function CreateAppointment() {
   };
 
   return (
-    <Container maxWidth="sm" sx={{ mt: 6 }}>
-      <Paper elevation={3} sx={{ p: 4 }}>
-        <Typography variant="h5" gutterBottom>
-          Create Appointment
-        </Typography>
+    <AppShell title="Book Appointment">
+      <PageHeader
+        title="Book Appointment"
+        action={
+          <Button
+            variant="outlined"
+            startIcon={<ArrowBackIcon />}
+            onClick={handleGoBack}
+          >
+            Back to Dashboard
+          </Button>
+        }
+      />
 
-        <Typography variant="body2" color="text.secondary" mb={3}>
-          Book an appointment with a doctor
-        </Typography>
-
+      <FormCard
+        title="Book an Appointment"
+        subtitle="Schedule a visit with a doctor"
+        maxWidth={560}
+      >
         {error && (
           <Alert severity="error" sx={{ mb: 2 }}>
             {error}
@@ -153,7 +158,7 @@ export default function CreateAppointment() {
               value={appointmentDate}
               onChange={(newValue) => setAppointmentDate(newValue)}
               disablePast
-              renderInput={(params) => <TextField {...params} fullWidth />}
+              slotProps={{ textField: { fullWidth: true } }}
             />
           </LocalizationProvider>
 
@@ -177,16 +182,9 @@ export default function CreateAppointment() {
           >
             {submitting ? 'Booking...' : 'Book Appointment'}
           </Button>
-
-          <Button
-            variant="outlined"
-            size="large"
-            onClick={handleGoBack}
-          >
-            Go Back to Dashboard
-          </Button>
         </Stack>
-      </Paper>
+      </FormCard>
+
       <Snackbar
         open={snackbar.open}
         autoHideDuration={5000}
@@ -196,6 +194,6 @@ export default function CreateAppointment() {
           {snackbar.message}
         </Alert>
       </Snackbar>
-    </Container>
+    </AppShell>
   );
 }

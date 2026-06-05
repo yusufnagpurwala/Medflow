@@ -10,7 +10,7 @@ exports.createAppointment = async (req, res) => {
         }
 
         const doctor = await User.findById(doctorId);
-        if(!doctor || !doctor.role == 'doctor'){
+        if(!doctor || doctor.role !== 'doctor'){
             return res.status(404).json({ success: false, message: 'Doctor not found.' });
         }
 
@@ -42,7 +42,7 @@ exports.getAppointments = async (req, res) => {
         const appointments = await Appointment.find(filter)
         .populate('doctorId', 'name email')
         .populate('patientId', 'name email')
-        .sort({ date: 1 });
+        .sort({ appointmentDate: 1 });
 
         res.status(200).json({ success: true, data: appointments });
     } catch (error) {
@@ -99,7 +99,7 @@ exports.updateAppointmentStatus = async (req, res) => {
 
         return res.json({ success: true, message: 'Status updated', data: appointment });
     } catch (error) {
-        res.status(500).json({ success: false, message: err.message });
+        res.status(500).json({ success: false, message: error.message });
     }
 }
 
@@ -123,6 +123,6 @@ exports.addNotes = async (req, res) => {
         return res.json({ success: true, message: 'Notes added', data: appointment });
 
     } catch (error) {
-        res.status(500).json({ success: false, message: err.message });
+        res.status(500).json({ success: false, message: error.message });
     }
 }

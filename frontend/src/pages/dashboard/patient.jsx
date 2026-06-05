@@ -1,27 +1,29 @@
 import React, { useEffect, useState } from 'react';
 import {
   Box,
-  CircularProgress,
-  Container,
-  Typography,
-  Paper,
+  Button,
   Card,
   CardContent,
-  Button,
-  Avatar,
-  Chip,
+  Stack,
+  Typography,
   Snackbar,
   Alert,
 } from '@mui/material';
 import { useAuthStore } from '../../store/authStore';
 import { useRouter } from 'next/router';
 import api from '@/lib/api';
-import LogoutIcon from '@mui/icons-material/Logout';
 import EyeIcon from '@mui/icons-material/RemoveRedEye';
+import EventBusyIcon from '@mui/icons-material/EventBusy';
+import {
+  AppShell,
+  PageHeader,
+  StatusChip,
+  EmptyState,
+  Loader,
+} from '@/components';
 
 export default function PatientDashboard() {
   const user = useAuthStore((s) => s.user);
-  const token = useAuthStore((s) => s.token);
   const isHydrated = useAuthStore((s) => s.isHydrated);
   const router = useRouter();
 
@@ -32,7 +34,7 @@ export default function PatientDashboard() {
   useEffect(() => {
     if (!isHydrated) return;
 
-    if (!token) {
+    if (!user) {
       router.push('/login');
       return;
     }
@@ -40,7 +42,7 @@ export default function PatientDashboard() {
     if (user?.role !== 'patient') {
       router.push(`/dashboard/${user?.role}`);
     }
-  }, [isHydrated, token, user, router]);
+  }, [isHydrated, user, router]);
 
   useEffect(() => {
     const fetchAppointments = async () => {
@@ -48,7 +50,7 @@ export default function PatientDashboard() {
         const res = await api.get('/appointments');
         setAppointments(res.data.data || []);
       } catch (err) {
-        console.log('Error Fetching Data: ', err);
+        // swallow fetch error; UI falls back to empty state
       } finally {
         setLoading(false);
       }
@@ -67,126 +69,102 @@ export default function PatientDashboard() {
   }, []);
 
   return (
-    <Container>
-      <Paper elevation={3} sx={{ padding: 3, marginTop: 4 }}>
-        <Box
-          display="flex"
-          justifyContent="space-between"
-          alignItems="center"
-          mb={3}
-        >
-          <Box display="flex" alignItems="center">
-            <Avatar sx={{ width: 56, height: 56, marginRight: 2 }}>
-              {user?.name?.charAt(0) || 'P'}
-            </Avatar>
-            <Box>
-              <Typography variant="h5">Welcome, {user?.name || 'Patient'}</Typography>
-              <Typography variant="subtitle1" color="textSecondary">
-                Here are your upcoming appointments
-              </Typography>
-            </Box>
-          </Box>
+    <AppShell title="Dashboard">
+      <PageHeader
+        title={`Welcome, ${user?.name || 'Patient'}`}
+        subtitle="Your appointments"
+        action={
           <Button
-            variant="outlined"
-            color="error"
-            startIcon={<LogoutIcon />}
-            onClick={() => {
-              useAuthStore.getState().logout();
-              router.push('/login');
-            }}
-          >
-            Logout
-          </Button>
-        </Box>
-
-        <Box display="flex" justifyContent="flex-end" marginBottom={2}>
-          <Button
-            variant="outlined"
-            color="primary"
+            variant="contained"
             onClick={() => router.push('/appointment/create-appointment')}
           >
             Book Appointment
           </Button>
-        </Box>
+        }
+      />
 
-        {loading ? (
-          <Box display="flex" justifyContent="center" alignItems="center">
-            <CircularProgress />
-          </Box>
-        ) : (
-          <Card>
-            <CardContent>
-              <Typography variant="h6" mb={2}>
-                Your Appointments
-              </Typography>
-              {appointments.length === 0 ? (
-                <Typography>No appointments found.</Typography>
-              ) : (
-                appointments.map((appointment) => (
-                  <Box
-                    key={appointment._id}
-                    sx={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      padding: 2,
-                      marginBottom: 2,
-                      border: '1px solid #ddd',
-                      borderRadius: '8px',
-                      backgroundColor: appointment.status === 'cancelled' ? '#f0f0f0' : '#f9f9f9',
-                      opacity: appointment.status === 'cancelled' ? 0.6 : 1,
-                    }}
+      {loading ? (
+        <Loader />
+      ) : appointments.length === 0 ? (
+        <EmptyState
+          icon={EventBusyIcon}
+          title="No appointments yet"
+          description="Book your first appointment to get started."
+          action={
+            <Button
+              variant="contained"
+              onClick={() => router.push('/appointment/create-appointment')}
+            >
+              Book Appointment
+            </Button>
+          }
+        />
+      ) : (
+        <Box
+          sx={{
+            display: 'grid',
+            gap: 2,
+            gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)' },
+          }}
+        >
+          {[...appointments]
+            .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+            .map((appointment) => {
+            const cancelled = appointment.status === 'cancelled';
+            return (
+              <Card
+                key={appointment._id}
+                variant="outlined"
+                sx={{ opacity: cancelled ? 0.6 : 1 }}
+              >
+                <CardContent>
+                  <Stack
+                    direction="row"
+                    justifyContent="space-between"
+                    alignItems="flex-start"
+                    spacing={1}
+                    sx={{ mb: 1.5 }}
                   >
-                    <Box>
-                      <Typography variant="body1">
-                        <strong>Doctor:</strong> {appointment.doctorId?.name || 'N/A'}
-                      </Typography>
-                      <Typography variant="body2" color="textSecondary">
-                        <strong>Date:</strong>{' '}
-                        {new Date(appointment.appointmentDate).toLocaleDateString()}
-                      </Typography>
-                      <Typography variant="body2" color="textSecondary">
-                        <strong>Time:</strong>{' '}
-                        {new Date(appointment.appointmentDate).toLocaleTimeString()}
-                      </Typography>
-                      <Typography variant="body2" color="textSecondary">
-                        <strong>Reason:</strong> {appointment.reason || 'N/A'}
-                      </Typography>
-                    </Box>
-                    <Chip
-                      label={appointment.status}
-                      size="small"
-                      color={
-                        appointment.status === 'completed'
-                          ? 'success'
-                          : appointment.status === 'pending'
-                          ? 'warning'
-                          : appointment.status === 'confirmed'
-                          ? 'info'
-                          : 'error'
-                      }
+                    <Typography variant="h6" sx={{ color: 'text.primary' }}>
+                      {appointment.doctorId?.name || 'N/A'}
+                    </Typography>
+                    <StatusChip status={appointment.status} />
+                  </Stack>
+
+                  <Stack spacing={0.5}>
+                    <Typography variant="body2" color="text.secondary">
+                      <strong>Date:</strong>{' '}
+                      {new Date(appointment.appointmentDate).toLocaleDateString()}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      <strong>Time:</strong>{' '}
+                      {new Date(appointment.appointmentDate).toLocaleTimeString()}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      <strong>Reason:</strong> {appointment.reason || 'N/A'}
+                    </Typography>
+                  </Stack>
+
+                  {appointment.status === 'completed' && (
+                    <Button
                       variant="outlined"
-                    />
-                    {appointment.status === 'completed' && (
-                      <Button
-                        variant="outlined"
-                        startIcon={<EyeIcon />}
-                        color="primary"
-                        sx={{ marginTop: 2, borderRadius: '16px' }}
-                        onClick={async () => {
-                          router.push(`/records/${appointment._id}`);
-                        }}
-                      >
-                        View Record
-                      </Button>
-                    )}
-                  </Box>
-                )))
-              }
-            </CardContent>
-          </Card>
-        )}
-      </Paper>
+                      startIcon={<EyeIcon />}
+                      color="primary"
+                      sx={{ mt: 2 }}
+                      onClick={() => {
+                        router.push(`/records/${appointment._id}`);
+                      }}
+                    >
+                      View Record
+                    </Button>
+                  )}
+                </CardContent>
+              </Card>
+            );
+          })}
+        </Box>
+      )}
+
       <Snackbar
         open={snackbar.open}
         autoHideDuration={5000}
@@ -197,6 +175,6 @@ export default function PatientDashboard() {
           {snackbar.message}
         </Alert>
       </Snackbar>
-    </Container>
+    </AppShell>
   );
 }

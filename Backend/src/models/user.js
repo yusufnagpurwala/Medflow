@@ -25,6 +25,11 @@ const userSchema = new mongoose.Schema({
     },
     specialization: {
         type: String,
+    },
+    status: {
+        type: String,
+        enum: ['pending', 'approved', 'rejected'],
+        default: 'approved'
     }
 }, { timestamps: true });
 

@@ -1,28 +1,58 @@
 import React, { useEffect, useState } from 'react';
 import {
   Box,
-  CircularProgress,
-  Container,
+  Card,
   Typography,
-  Paper,
   MenuItem,
   Select,
   FormControl,
-  InputLabel,
   Snackbar,
   Alert,
   Button,
+  Stack,
   Divider,
-  Avatar,
 } from '@mui/material';
 import { useRouter } from 'next/router';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import EventIcon from '@mui/icons-material/Event';
 import PersonIcon from '@mui/icons-material/Person';
 import MedicalServicesIcon from '@mui/icons-material/MedicalServices';
+import NotesIcon from '@mui/icons-material/Notes';
+import SearchOffIcon from '@mui/icons-material/SearchOff';
 import api from '@/lib/api';
 import { useAuthStore } from '@/store/authStore';
 import { TimeIcon } from '@mui/x-date-pickers';
+import { AppShell, PageHeader, StatusChip, Loader, EmptyState } from '@/components';
+
+function InfoRow({ icon: Icon, label, value }) {
+  return (
+    <Stack direction="row" spacing={2} alignItems="center">
+      <Box
+        sx={{
+          width: 40,
+          height: 40,
+          borderRadius: '50%',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          bgcolor: 'primary.light',
+          color: 'primary.dark',
+          flexShrink: 0,
+        }}
+      >
+        <Icon fontSize="small" />
+      </Box>
+      <Box sx={{ minWidth: 0 }}>
+        <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+          {label}
+        </Typography>
+        <Typography variant="body1" sx={{ color: 'text.primary' }}>
+          {value}
+        </Typography>
+      </Box>
+    </Stack>
+  );
+}
 
 export default function AppointmentDetails() {
   const router = useRouter();
@@ -34,20 +64,20 @@ export default function AppointmentDetails() {
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
 
   const user = useAuthStore((s) => s.user);
-  const token = useAuthStore((s) => s.token);
+  const isHydrated = useAuthStore((s) => s.isHydrated);
   useEffect(() => {
-      if (!useAuthStore.getState().isHydrated) return;
-  
-      if (!token) {
-        router.push('/login');
-        return;
-      }
-  
-      if (user?.role !== 'doctor') {
-        router.push('/login');
-      }
-    });
-    
+    if (!isHydrated) return;
+
+    if (!user) {
+      router.push('/login');
+      return;
+    }
+
+    if (user?.role !== 'doctor') {
+      router.push('/login');
+    }
+  }, [isHydrated, user, router]);
+
   useEffect(() => {
     if (!id) return;
 
@@ -57,7 +87,7 @@ export default function AppointmentDetails() {
         setAppointment(res.data.data);
         setStatus(res.data.data.status);
       } catch (err) {
-        console.error('Error fetching appointment:', err);
+        // swallow fetch error; UI falls back to not-found state
       } finally {
         setLoading(false);
       }
@@ -74,7 +104,6 @@ export default function AppointmentDetails() {
       await api.patch(`/appointments/${id}/status`, { status: newStatus });
       setSnackbar({ open: true, message: 'Status updated successfully', severity: 'success' });
     } catch (err) {
-      console.error('Error updating status:', err);
       setSnackbar({ open: true, message: 'Failed to update status', severity: 'error' });
     }
   };
@@ -83,99 +112,94 @@ export default function AppointmentDetails() {
     setSnackbar({ ...snackbar, open: false });
   };
 
+  const backAction = (
+    <Button
+      variant="outlined"
+      startIcon={<ArrowBackIcon />}
+      onClick={() => router.push('/dashboard/doctor')}
+    >
+      Back to Dashboard
+    </Button>
+  );
+
   if (loading) {
     return (
-      <Box display="flex" justifyContent="center" alignItems="center" height="100vh">
-        <CircularProgress />
-      </Box>
+      <AppShell title="Appointment">
+        <Loader label="Loading appointment..." />
+      </AppShell>
     );
   }
 
   if (!appointment) {
     return (
-      <Box display="flex" justifyContent="center" alignItems="center" height="100vh">
-        <Typography variant="h6">Appointment not found</Typography>
-      </Box>
+      <AppShell title="Appointment">
+        <PageHeader title="Appointment Details" action={backAction} />
+        <EmptyState icon={SearchOffIcon} title="Appointment not found" />
+      </AppShell>
     );
   }
 
   return (
-    <Container>
-      <Paper elevation={3} sx={{ padding: 4, marginTop: 4, borderRadius: 2, backgroundColor: '#f0f4f8' }}>
-        <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-          <Button
-            variant="outlined"
-            color="primary"
-            startIcon={<ArrowBackIcon />}
-            onClick={() => router.push('/dashboard/doctor')}
-            sx={{ textTransform: 'none', fontWeight: 'bold' }}
-          >
-            Back to Dashboard
-          </Button>
-          <Typography variant="h4" fontWeight="bold" color="primary">
-            Appointment Details
+    <AppShell title="Appointment">
+      <PageHeader title="Appointment Details" action={backAction} />
+
+      <Card sx={{ p: { xs: 3, sm: 4 } }}>
+        <Stack
+          direction="row"
+          alignItems="center"
+          justifyContent="space-between"
+          spacing={2}
+          sx={{ mb: 3 }}
+        >
+          <Typography variant="h6" sx={{ color: 'text.primary' }}>
+            Details
           </Typography>
-        </Box>
-        <Divider sx={{ marginBottom: 3 }} />
-        <Box mb={3}>
-          <Box display="flex" alignItems="center" mb={2}>
-            <Avatar sx={{ bgcolor: '#1976d2', marginRight: 2 }}>
-              <MedicalServicesIcon />
-            </Avatar>
-            <Typography variant="body1" sx={{ fontSize: '1.1rem', color: '#333' }}>
-              <strong>Doctor:</strong> {appointment.doctorId?.name || 'N/A'}
-            </Typography>
-          </Box>
-          <Box display="flex" alignItems="center" mb={2}>
-            <Avatar sx={{ bgcolor: '#388e3c', marginRight: 2 }}>
-              <PersonIcon />
-            </Avatar>
-            <Typography variant="body1" sx={{ fontSize: '1.1rem', color: '#333' }}>
-              <strong>Patient Name:</strong> {appointment.patientId?.name || 'N/A'}
-            </Typography>
-          </Box>
-          <Box display="flex" alignItems="center" mb={2}>
-            <Avatar sx={{ bgcolor: '#f57c00', marginRight: 2 }}>
-              <EventIcon />
-            </Avatar>
-            <Typography variant="body1" sx={{ fontSize: '1.1rem', color: '#333' }}>
-              <strong>Date:</strong> {new Date(appointment.appointmentDate).toLocaleDateString()}
-            </Typography>
-          </Box>
-          <Box display="flex" alignItems="center" mb={2}>
-            <Avatar sx={{ bgcolor: '#b20bcfff', marginRight: 2 }}>
-              <TimeIcon />
-            </Avatar>
-            <Typography variant="body1" sx={{ fontSize: '1.1rem', color: '#333' }}>
-              <strong>Time:</strong> {new Date(appointment.appointmentDate).toLocaleTimeString()}
-            </Typography>
-          </Box>
-          <Box display="flex" alignItems="center" mb={2}>
-            <Avatar sx={{ bgcolor: '#d32f2f', marginRight: 2 }}>
-              <MedicalServicesIcon />
-            </Avatar>
-            <Typography variant="body1" sx={{ fontSize: '1.1rem', color: '#333' }}>
-              <strong>Reason:</strong> {appointment.reason || 'N/A'}
-            </Typography>
-          </Box>
-        </Box>
-        <Typography variant="body1" mb={2} sx={{ fontSize: '1.1rem', color: '#333' }}>
-            <strong>Update Status: </strong>
+          <StatusChip status={status} />
+        </Stack>
+
+        <Stack spacing={2.5}>
+          <InfoRow
+            icon={MedicalServicesIcon}
+            label="Doctor"
+            value={appointment.doctorId?.name || 'N/A'}
+          />
+          <InfoRow
+            icon={PersonIcon}
+            label="Patient Name"
+            value={appointment.patientId?.name || 'N/A'}
+          />
+          <InfoRow
+            icon={EventIcon}
+            label="Date"
+            value={new Date(appointment.appointmentDate).toLocaleDateString()}
+          />
+          <InfoRow
+            icon={TimeIcon}
+            label="Time"
+            value={new Date(appointment.appointmentDate).toLocaleTimeString()}
+          />
+          <InfoRow
+            icon={NotesIcon}
+            label="Reason"
+            value={appointment.reason || 'N/A'}
+          />
+        </Stack>
+
+        <Divider sx={{ my: 3 }} />
+
+        <Typography variant="subtitle2" sx={{ color: 'text.secondary', mb: 1 }}>
+          Update Status
         </Typography>
         <FormControl fullWidth>
-          <Select
-            labelId="status-label"
-            value={status}
-            onChange={handleStatusChange}
-            sx={{ backgroundColor: '#fff', borderRadius: 1 }}
-          >
+          <Select value={status} onChange={handleStatusChange}>
             <MenuItem value="confirmed">Confirmed</MenuItem>
             <MenuItem value="completed">Completed</MenuItem>
             <MenuItem value="cancelled">Cancelled</MenuItem>
             <MenuItem value="pending">Pending</MenuItem>
           </Select>
         </FormControl>
-      </Paper>
+      </Card>
+
       <Snackbar
         open={snackbar.open}
         autoHideDuration={3000}
@@ -186,6 +210,6 @@ export default function AppointmentDetails() {
           {snackbar.message}
         </Alert>
       </Snackbar>
-    </Container>
+    </AppShell>
   );
 }
