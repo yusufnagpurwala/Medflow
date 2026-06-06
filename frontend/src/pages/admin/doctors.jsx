@@ -120,10 +120,10 @@ export default function AdminDoctors() {
     {
       field: 'actions',
       headerName: 'Actions',
-      width: 220,
+      width: 300,
       sortable: false,
       renderCell: (params) => {
-        const { _id, status } = params.row;
+        const { _id, status, name } = params.row;
         const busy = actioningId === _id;
         return (
           <Box display="flex" gap={1}>
@@ -144,6 +144,17 @@ export default function AdminDoctors() {
               onClick={() => handleAction(_id, 'reject')}
             >
               Reject
+            </Button>
+            <Button
+              variant="outlined"
+              size="small"
+              onClick={() =>
+                router.push(
+                  `/admin/doctors/${_id}/availability?name=${encodeURIComponent(name)}`
+                )
+              }
+            >
+              Slots
             </Button>
           </Box>
         );

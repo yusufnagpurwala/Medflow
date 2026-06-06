@@ -8,6 +8,7 @@ const appointmentRouter = require('./routes/appointment')
 const recordRouter = require('./routes/record')
 const userRouter = require('./routes/users');
 const adminRouter = require('./routes/admin');
+const availabilityRouter = require('./routes/availability');
 const connectDB = require('./config/db');
 const { checkAuth, restrictTo } = require('./middlewares/authMiddleware');
 const app = express();
@@ -36,6 +37,7 @@ app.use(checkAuth)
 app.use('/api/users', userRouter);
 app.use('/api/admin', adminRouter);
 app.use('/api/appointments', appointmentRouter);
+app.use('/api/availability', availabilityRouter);
 app.use('/api/records', recordRouter);
 
 //Test protected route
