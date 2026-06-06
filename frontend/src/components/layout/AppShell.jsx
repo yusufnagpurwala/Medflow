@@ -19,6 +19,7 @@ import DashboardIcon from '@mui/icons-material/Dashboard';
 import EventIcon from '@mui/icons-material/Event';
 import MedicalServicesIcon from '@mui/icons-material/MedicalServices';
 import PeopleIcon from '@mui/icons-material/People';
+import EventAvailableIcon from '@mui/icons-material/EventAvailable';
 import { useAuthStore } from '@/store/authStore';
 import UserMenu from './UserMenu';
 import ThemeToggle from '../ThemeToggle';
@@ -33,6 +34,7 @@ const NAV_BY_ROLE = {
   ],
   doctor: [
     { label: 'Dashboard', href: '/dashboard/doctor', icon: DashboardIcon },
+    { label: 'Availability', href: '/availability', icon: EventAvailableIcon },
   ],
   admin: [
     { label: 'Dashboard', href: '/dashboard/admin', icon: DashboardIcon },

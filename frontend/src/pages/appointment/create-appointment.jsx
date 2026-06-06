@@ -6,17 +6,20 @@ import {
   Autocomplete,
   CircularProgress,
   Alert,
-  Snackbar,
+  Box,
+  Typography,
+  ToggleButton,
 } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import EventBusyIcon from '@mui/icons-material/EventBusy';
 import dayjs from 'dayjs';
 
 import { useAuthStore } from '@/store/authStore';
 import { useRouter } from 'next/router';
 import api from '@/lib/api';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
-import { DateTimePicker, LocalizationProvider } from '@mui/x-date-pickers';
-import { AppShell, PageHeader, FormCard } from '@/components';
+import { DatePicker, LocalizationProvider } from '@mui/x-date-pickers';
+import { AppShell, PageHeader, FormCard, Loader, EmptyState } from '@/components';
 
 export default function CreateAppointment() {
   const user = useAuthStore((s) => s.user);
@@ -26,13 +29,16 @@ export default function CreateAppointment() {
 
   const [doctors, setDoctors] = useState([]);
   const [selectedDoctor, setSelectedDoctor] = useState(null);
-  const [appointmentDate, setAppointmentDate] = useState(null);
+  const [selectedDate, setSelectedDate] = useState(null);
+  const [slotsData, setSlotsData] = useState(null);
+  const [selectedSlot, setSelectedSlot] = useState(null);
   const [reason, setReason] = useState('');
   const [loadingDoctors, setLoadingDoctors] = useState(false);
+  const [loadingSlots, setLoadingSlots] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
-  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
 
+  // Auth guard: patient only.
   useEffect(() => {
     if (!isHydrated) return;
 
@@ -62,24 +68,49 @@ export default function CreateAppointment() {
     if (user) fetchDoctors();
   }, [user]);
 
+  // Fetch slots for the given doctor + date. Clears any prior selection.
+  const fetchSlots = async (doctorId, dateObj) => {
+    if (!doctorId || !dateObj) return;
+    setLoadingSlots(true);
+    setSelectedSlot(null);
+    try {
+      const res = await api.get('/appointments/slots', {
+        params: { doctorId, date: dateObj.format('YYYY-MM-DD') },
+      });
+      setSlotsData(res.data.data || null);
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to load slots');
+      setSlotsData(null);
+    } finally {
+      setLoadingSlots(false);
+    }
+  };
+
+  // Reset slots + selection whenever doctor or date changes (stale-prevention),
+  // then refetch when both are present.
+  useEffect(() => {
+    setSlotsData(null);
+    setSelectedSlot(null);
+    if (selectedDoctor?._id && selectedDate) {
+      fetchSlots(selectedDoctor._id, selectedDate);
+    }
+  }, [selectedDoctor, selectedDate]);
+
   const isValid =
-    selectedDoctor &&
-    appointmentDate &&
-    dayjs(appointmentDate).isAfter(dayjs()) &&
-    reason.trim().length > 5;
+    Boolean(selectedDoctor) && Boolean(selectedSlot) && reason.trim().length > 5;
 
   const handleSubmit = async () => {
     setError('');
     if (!isValid) {
-      setError('Please fill all fields correctly.');
+      setError('Please select a doctor, a slot, and enter a reason.');
       return;
     }
     setSubmitting(true);
 
     try {
       await api.post('/appointments/create-appointment', {
-        doctorId: selectedDoctor?._id,
-        appointmentDate: appointmentDate.toISOString(),
+        doctorId: selectedDoctor._id,
+        appointmentDate: selectedSlot.iso,
         reason: reason.trim(),
       });
       localStorage.setItem(
@@ -88,7 +119,17 @@ export default function CreateAppointment() {
       );
       router.push('/dashboard/patient');
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to create appointment');
+      const statusCode = err.response?.status;
+      if (statusCode === 409) {
+        setError('That slot was just taken — please pick another.');
+        setSelectedSlot(null);
+        // Refresh the grid so the taken slot shows as unavailable.
+        if (selectedDoctor?._id && selectedDate) {
+          fetchSlots(selectedDoctor._id, selectedDate);
+        }
+      } else {
+        setError(err.response?.data?.message || 'Failed to create appointment');
+      }
     } finally {
       setSubmitting(false);
     }
@@ -96,6 +137,68 @@ export default function CreateAppointment() {
 
   const handleGoBack = () => {
     router.push('/dashboard/patient');
+  };
+
+  const renderSlots = () => {
+    if (!selectedDoctor || !selectedDate) return null;
+
+    if (loadingSlots) return <Loader label="Loading slots..." />;
+
+    if (!slotsData) return null;
+
+    if (slotsData.hasAvailability === false) {
+      return (
+        <Alert severity="info">This doctor isn&apos;t accepting bookings yet.</Alert>
+      );
+    }
+
+    const slots = Array.isArray(slotsData.slots) ? slotsData.slots : [];
+    if (slots.length === 0) {
+      return (
+        <EmptyState
+          icon={EventBusyIcon}
+          title="No available slots on this day."
+          description="Try selecting another date."
+        />
+      );
+    }
+
+    return (
+      <Box>
+        <Typography variant="subtitle2" sx={{ mb: 1, color: 'text.secondary' }}>
+          Select a time
+        </Typography>
+        <Box
+          sx={{
+            display: 'grid',
+            gridTemplateColumns: {
+              xs: 'repeat(3, 1fr)',
+              sm: 'repeat(4, 1fr)',
+              md: 'repeat(5, 1fr)',
+            },
+            gap: 1,
+          }}
+        >
+          {slots.map((slot) => {
+            const selected = selectedSlot?.iso === slot.iso;
+            return (
+              <ToggleButton
+                key={slot.iso}
+                value={slot.iso}
+                selected={selected}
+                disabled={!slot.available}
+                onChange={() => setSelectedSlot(slot)}
+                size="small"
+                color="primary"
+                sx={{ textTransform: 'none' }}
+              >
+                {slot.time}
+              </ToggleButton>
+            );
+          })}
+        </Box>
+      </Box>
+    );
   };
 
   return (
@@ -115,8 +218,8 @@ export default function CreateAppointment() {
 
       <FormCard
         title="Book an Appointment"
-        subtitle="Schedule a visit with a doctor"
-        maxWidth={560}
+        subtitle="Pick a doctor, choose a date, then select an open slot"
+        maxWidth={620}
       >
         {error && (
           <Alert severity="error" sx={{ mb: 2 }}>
@@ -153,14 +256,17 @@ export default function CreateAppointment() {
           />
 
           <LocalizationProvider dateAdapter={AdapterDayjs}>
-            <DateTimePicker
-              label="Appointment Date & Time"
-              value={appointmentDate}
-              onChange={(newValue) => setAppointmentDate(newValue)}
+            <DatePicker
+              label="Appointment Date"
+              value={selectedDate}
+              onChange={(newValue) => setSelectedDate(newValue)}
               disablePast
+              minDate={dayjs()}
               slotProps={{ textField: { fullWidth: true } }}
             />
           </LocalizationProvider>
+
+          {renderSlots()}
 
           <TextField
             label="Reason for visit"
@@ -184,16 +290,6 @@ export default function CreateAppointment() {
           </Button>
         </Stack>
       </FormCard>
-
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={5000}
-        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
-      >
-        <Alert severity={snackbar.severity} sx={{ width: '100%' }}>
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
     </AppShell>
   );
 }

@@ -11,9 +11,12 @@ const {
     getAllAppointments,
     getAnalytics
 } = require('../controllers/admin');
+const { getDoctorAvailability, upsertDoctorAvailability } = require('../controllers/availability');
 const { checkAuth, restrictTo } = require('../middlewares/authMiddleware');
 
 router.get('/doctors/pending', checkAuth, restrictTo(['admin']), getPendingDoctors);
+router.get('/doctors/:id/availability', checkAuth, restrictTo(['admin']), getDoctorAvailability);
+router.put('/doctors/:id/availability', checkAuth, restrictTo(['admin']), upsertDoctorAvailability);
 router.patch('/doctors/:id/approve', checkAuth, restrictTo(['admin']), approveDoctor);
 router.patch('/doctors/:id/reject', checkAuth, restrictTo(['admin']), rejectDoctor);
 router.get('/doctors', checkAuth, restrictTo(['admin']), getAllDoctors);

@@ -11,3 +11,4 @@ export { default as EmptyState } from './EmptyState';
 export { default as Loader } from './Loader';
 export { default as ConfirmDialog } from './ConfirmDialog';
 export { default as ThemeToggle } from './ThemeToggle';
+export { default as AvailabilityEditor } from './AvailabilityEditor';
