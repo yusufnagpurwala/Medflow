@@ -12,6 +12,7 @@ import {
 import LocalHospitalIcon from '@mui/icons-material/LocalHospital';
 import '../styles/globals.css';
 import { useAuthStore } from '@/store/authStore';
+import { useUiStore } from '@/store/uiStore';
 import { createAppTheme } from '@/theme';
 
 // Load the brand font and expose it as a CSS variable so the theme
@@ -49,12 +50,20 @@ function BrandedSplash() {
 }
 
 export default function MyApp({ Component, pageProps }) {
-  const isHydrated = useAuthStore((s) => s.isHydrated);
+  const authHydrated = useAuthStore((s) => s.isHydrated);
+  const uiHydrated = useUiStore((s) => s.isHydrated);
+  const mode = useUiStore((s) => s.mode);
 
-  // Inject the loaded font variable as the theme font-family.
+  // Both stores persist to localStorage and rehydrate on the client. Gate
+  // first paint on BOTH so we never flash the wrong auth state or the wrong
+  // color mode before the persisted preference is known.
+  const isHydrated = authHydrated && uiHydrated;
+
+  // Inject the loaded font variable as the theme font-family. Rebuild when
+  // the color mode changes so the palette/component overrides follow.
   const theme = useMemo(
-    () => createAppTheme(`var(--font-jakarta), system-ui, sans-serif`),
-    []
+    () => createAppTheme(mode, `var(--font-jakarta), system-ui, sans-serif`),
+    [mode]
   );
 
   return (

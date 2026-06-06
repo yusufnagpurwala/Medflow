@@ -1,3 +1,4 @@
+const mongoose = require('mongoose');
 const Appointment = require('../models/appointment');
 const User = require('../models/user');
 
@@ -122,6 +123,43 @@ exports.addNotes = async (req, res) => {
         await appointment.save();
         return res.json({ success: true, message: 'Notes added', data: appointment });
 
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+}
+
+exports.getDoctorAnalytics = async (req, res) => {
+    try {
+        const doctorId = new mongoose.Types.ObjectId(req.user.id);
+        const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+
+        const statusAgg = await Appointment.aggregate([
+            { $match: { doctorId } },
+            { $group: { _id: '$status', count: { $sum: 1 } } }
+        ]);
+        const byStatus = statusAgg.map((item) => ({
+            status: item._id,
+            count: item.count
+        }));
+
+        const trendAgg = await Appointment.aggregate([
+            { $match: { doctorId, createdAt: { $gte: thirtyDaysAgo } } },
+            {
+                $group: {
+                    _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
+                    count: { $sum: 1 }
+                }
+            },
+            { $sort: { _id: 1 } }
+        ]);
+        const trend = trendAgg.map((item) => ({
+            date: item._id,
+            count: item.count
+        }));
+
+        const total = await Appointment.countDocuments({ doctorId });
+
+        return res.json({ success: true, data: { byStatus, trend, total } });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
     }

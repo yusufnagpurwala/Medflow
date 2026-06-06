@@ -18,7 +18,9 @@ body {
 }
 
 body {
-  background: #f8fafc;
+  /* Background color is owned by the MUI theme via CssBaseline so it can
+     follow the active (light/dark) color mode. Do NOT hardcode it here —
+     a static value would override dark mode and cause a flash. */
   /* Inherit the brand font (set via the theme & --font-jakarta var). */
   font-family: inherit;
   -webkit-font-smoothing: antialiased;

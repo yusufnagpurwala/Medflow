@@ -113,3 +113,61 @@ exports.getAllAppointments = async (req, res) => {
         res.status(500).json({ success: false, message: error.message });
     }
 }
+
+exports.getAnalytics = async (req, res) => {
+    try {
+        const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+
+        const statusAgg = await Appointment.aggregate([
+            { $group: { _id: '$status', count: { $sum: 1 } } }
+        ]);
+        const appointmentsByStatus = statusAgg.map((item) => ({
+            status: item._id,
+            count: item.count
+        }));
+
+        const doctorStatusAgg = await User.aggregate([
+            { $match: { role: 'doctor' } },
+            { $group: { _id: '$status', count: { $sum: 1 } } }
+        ]);
+        const doctorsByStatus = doctorStatusAgg.map((item) => ({
+            status: item._id,
+            count: item.count
+        }));
+
+        const trendAgg = await Appointment.aggregate([
+            { $match: { createdAt: { $gte: thirtyDaysAgo } } },
+            {
+                $group: {
+                    _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
+                    count: { $sum: 1 }
+                }
+            },
+            { $sort: { _id: 1 } }
+        ]);
+        const appointmentsTrend = trendAgg.map((item) => ({
+            date: item._id,
+            count: item.count
+        }));
+
+        const usersAgg = await User.aggregate([
+            { $match: { role: { $in: ['patient', 'doctor'] } } },
+            { $group: { _id: '$role', count: { $sum: 1 } } }
+        ]);
+        const roleCounts = usersAgg.reduce((acc, item) => {
+            acc[item._id] = item.count;
+            return acc;
+        }, {});
+        const usersBreakdown = [
+            { name: 'Patients', value: roleCounts.patient || 0 },
+            { name: 'Doctors', value: roleCounts.doctor || 0 }
+        ];
+
+        res.status(200).json({
+            success: true,
+            data: { appointmentsByStatus, doctorsByStatus, appointmentsTrend, usersBreakdown }
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+}

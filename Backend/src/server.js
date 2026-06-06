@@ -13,6 +13,10 @@ const { checkAuth, restrictTo } = require('./middlewares/authMiddleware');
 const app = express();
 const PORT = 8000;
 
+// Behind a reverse proxy (Render/Railway/etc) — required so `secure` cookies
+// and req.protocol work correctly over the proxy's https termination.
+app.set('trust proxy', 1);
+
 //DB Connection
 connectDB(process.env.MONGO_URI);
 

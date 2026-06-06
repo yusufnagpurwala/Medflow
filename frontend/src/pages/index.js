@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { useAuthStore } from '../store/authStore';
+import { ThemeToggle } from '@/components';
 import { Box, Button, Container, Stack, Typography } from '@mui/material';
 import LocalHospitalIcon from '@mui/icons-material/LocalHospital';
 import EventAvailableIcon from '@mui/icons-material/EventAvailable';
@@ -44,14 +45,24 @@ export default function Home() {
   return (
     <Box
       sx={{
+        position: 'relative',
         minHeight: '100vh',
         display: 'flex',
         alignItems: 'center',
-        background:
-          'linear-gradient(180deg, #F8FAFC 0%, rgba(13,148,136,0.07) 100%)',
+        // Subtle brand wash that reads on either color mode: fade the
+        // theme's default background into a faint teal tint.
+        background: (theme) =>
+          `linear-gradient(180deg, ${theme.palette.background.default} 0%, ${
+            theme.palette.mode === 'dark'
+              ? 'rgba(45,212,191,0.10)'
+              : 'rgba(13,148,136,0.07)'
+          } 100%)`,
         py: { xs: 6, md: 8 },
       }}
     >
+      <Box sx={{ position: 'absolute', top: 16, right: 16 }}>
+        <ThemeToggle />
+      </Box>
       <Container maxWidth="md">
         <Stack spacing={{ xs: 5, md: 7 }} alignItems="center" textAlign="center">
           {/* Brand lockup */}
@@ -132,7 +143,10 @@ export default function Home() {
                   borderRadius: 3,
                   p: 3,
                   textAlign: 'left',
-                  boxShadow: '0 1px 3px rgba(15,23,42,0.06)',
+                  boxShadow: (theme) =>
+                    theme.palette.mode === 'dark'
+                      ? '0 1px 3px rgba(0,0,0,0.4)'
+                      : '0 1px 3px rgba(15,23,42,0.06)',
                 }}
               >
                 <Box
@@ -143,7 +157,10 @@ export default function Home() {
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    bgcolor: 'rgba(13,148,136,0.1)',
+                    bgcolor: (theme) =>
+                      theme.palette.mode === 'dark'
+                        ? 'rgba(45,212,191,0.16)'
+                        : 'rgba(13,148,136,0.1)',
                     color: 'primary.main',
                     mb: 1.5,
                   }}
