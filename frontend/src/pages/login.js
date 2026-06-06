@@ -11,7 +11,7 @@ import {
   Typography,
 } from "@mui/material";
 import LocalHospitalIcon from "@mui/icons-material/LocalHospital";
-import { FormCard } from "@/components";
+import { FormCard, ThemeToggle } from "@/components";
 import { useAuthStore } from "@/store/authStore";
 
 export default function Login() {
@@ -47,11 +47,17 @@ export default function Login() {
   return (
     <Box
       sx={{
+        position: "relative",
         minHeight: "100vh",
         display: "flex",
         flexDirection: { xs: "column", md: "row" },
+        bgcolor: "background.default",
       }}
     >
+      <Box sx={{ position: "absolute", top: 16, right: 16, zIndex: 1 }}>
+        <ThemeToggle />
+      </Box>
+
       {/* Brand panel */}
       <Box
         sx={{

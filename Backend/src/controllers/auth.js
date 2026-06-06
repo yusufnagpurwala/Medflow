@@ -1,6 +1,6 @@
 const User = require('../models/user');
 const bcrypt = require('bcrypt');
-const { setUser } = require('../service/auth');
+const { setUser, getCookieOptions } = require('../service/auth');
 
 exports.registerUser = async (req, res) => {
     try {
@@ -65,12 +65,7 @@ exports.loginUser = async (req, res) => {
         }
 
         const token = await setUser(user);
-        res.cookie('token', token, {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: 'lax',
-            maxAge: 7 * 24 * 60 * 60 * 1000
-        });
+        res.cookie('token', token, getCookieOptions());
 
         const safeUser = user.toObject();
         delete safeUser.password;
@@ -84,10 +79,6 @@ exports.loginUser = async (req, res) => {
 }
 
 exports.logoutUser = async (req, res) => {
-    res.clearCookie('token', {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax'
-    });
+    res.clearCookie('token', getCookieOptions({ includeMaxAge: false }));
     res.status(200).json({ message: 'Logged out' });
 }

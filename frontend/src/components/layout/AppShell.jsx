@@ -21,6 +21,7 @@ import MedicalServicesIcon from '@mui/icons-material/MedicalServices';
 import PeopleIcon from '@mui/icons-material/People';
 import { useAuthStore } from '@/store/authStore';
 import UserMenu from './UserMenu';
+import ThemeToggle from '../ThemeToggle';
 
 const SIDEBAR_WIDTH = 248;
 
@@ -187,6 +188,7 @@ export default function AppShell({ children, title }) {
             ) : null}
 
             <Box sx={{ flexGrow: 1 }} />
+            <ThemeToggle sx={{ mr: 0.5 }} />
             <UserMenu />
           </Toolbar>
         </AppBar>
