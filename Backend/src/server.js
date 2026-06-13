@@ -12,7 +12,7 @@ const availabilityRouter = require('./routes/availability');
 const connectDB = require('./config/db');
 const { checkAuth, restrictTo } = require('./middlewares/authMiddleware');
 const app = express();
-const PORT = 8000;
+const PORT = process.env.PORT || 8000;
 
 // Behind a reverse proxy (Render/Railway/etc) — required so `secure` cookies
 // and req.protocol work correctly over the proxy's https termination.
