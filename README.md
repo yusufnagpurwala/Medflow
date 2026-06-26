@@ -208,7 +208,3 @@ npm run dev                # starts on http://localhost:3000
 [LinkedIn](https://www.linkedin.com/in/yusuf-nagpurwala)
 
 ---
-
-## 📄 License
-
-Released under the MIT License. See `LICENSE` for details.
