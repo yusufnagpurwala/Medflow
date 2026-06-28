@@ -5,6 +5,7 @@ import {
   Alert,
   Box,
   Button,
+  CircularProgress,
   Collapse,
   Link,
   MenuItem,
@@ -189,6 +190,7 @@ export default function Signup() {
                 fullWidth
                 size="large"
                 disabled={!isValid || submitting}
+                startIcon={submitting ? <CircularProgress size={20} color="inherit" /> : null}
               >
                 {submitting ? "Creating account..." : "Sign Up"}
               </Button>

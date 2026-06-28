@@ -70,6 +70,10 @@ export default function MyApp({ Component, pageProps }) {
     <>
       <Head>
         <title>MedFlow</title>
+        <meta
+          name="description"
+          content="MedFlow — healthcare management: book appointments, manage doctors, and access medical records in one secure place."
+        />
         <meta name="viewport" content="initial-scale=1, width=device-width" />
       </Head>
 

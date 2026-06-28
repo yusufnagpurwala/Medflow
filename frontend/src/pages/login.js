@@ -5,6 +5,7 @@ import {
   Alert,
   Box,
   Button,
+  CircularProgress,
   Link,
   Stack,
   TextField,
@@ -18,12 +19,15 @@ export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
   const setAuth = useAuthStore((s) => s.setAuth)
   const router = useRouter();
 
   const submit = async (e) => {
     e.preventDefault();
+    setError('');
+    setLoading(true);
     try {
       const res = await api.post('/auth/login', { email, password });
       const { user } = res.data;
@@ -38,9 +42,11 @@ export default function Login() {
       } else {
         router.push('/login')
       }
+      // leave loading=true on success: spinner persists through the redirect
 
     } catch (err) {
       setError(err.response?.data?.message || err.message);
+      setLoading(false);
     }
   }
 
@@ -123,8 +129,15 @@ export default function Login() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
               />
-              <Button type="submit" variant="contained" fullWidth size="large">
-                Login
+              <Button
+                type="submit"
+                variant="contained"
+                fullWidth
+                size="large"
+                disabled={loading || !email.trim() || !password}
+                startIcon={loading ? <CircularProgress size={20} color="inherit" /> : null}
+              >
+                {loading ? "Signing in..." : "Login"}
               </Button>
             </Stack>
           </form>

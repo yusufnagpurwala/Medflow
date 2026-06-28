@@ -6,9 +6,6 @@ const connectionDB = async (uri) => {
         const conn = await mongoose.connect(uri);
         console.log(`MongoDB Connected: ${conn.connection.host}`);
 
-        // Explicitly build/verify indexes (incl. the partial unique index that
-        // guards against double-booking). syncIndexes surfaces build failures
-        // loudly instead of silently leaving the app without the guard.
         try {
             await Appointment.syncIndexes();
             console.log('Appointment indexes synced');
