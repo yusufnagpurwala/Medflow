@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Button, Box, Typography } from '@mui/material';
+import { Button, Box, Typography, Tooltip as MuiTooltip } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import { useAuthStore } from '../../store/authStore';
 import { useRouter } from 'next/router';
@@ -123,7 +123,6 @@ export default function DoctorDashboard() {
   }, [user]);
 
   const columns = [
-    { field: '_id', headerName: 'ID' },
     {
       field: 'patientId',
       headerName: 'Patient',
@@ -135,7 +134,15 @@ export default function DoctorDashboard() {
       headerName: 'Date',
       width: 180,
       renderCell: (params) =>
-        params.value ? new Date(params.value).toLocaleString() : 'N/A',
+        params.value
+          ? new Date(params.value).toLocaleString([], {
+              year: 'numeric',
+              month: 'short',
+              day: 'numeric',
+              hour: '2-digit',
+              minute: '2-digit',
+            })
+          : 'N/A',
     },
     {
       field: 'status',
@@ -146,7 +153,16 @@ export default function DoctorDashboard() {
     {
       field: 'reason',
       headerName: 'Reason',
-      width: 150,
+      flex: 1,
+      minWidth: 160,
+      renderCell: (params) => (
+        <span
+          title={params.value || ''}
+          style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+        >
+          {params.value || 'N/A'}
+        </span>
+      ),
     },
     {
       field: 'actions',
@@ -171,25 +187,29 @@ export default function DoctorDashboard() {
     },
     {
       field: 'records',
-      headerName: 'Records',
-      width: 100,
-      renderCell: (params) => {
-        const handleViewRecords = () => {
-          router.push(`/records/new?appointmentId=${params.row._id}`);
-        };
-
-        return (
+      headerName: 'Record',
+      width: 130,
+      sortable: false,
+      renderCell: (params) => (
+        <MuiTooltip title="Add or view medical record">
           <Button
             variant="text"
             color="info"
             startIcon={<EyeIcon />}
             size="small"
-            onClick={handleViewRecords}
-          />
-        );
-      },
+            aria-label="Add or view medical record"
+            onClick={() => router.push(`/records/new?appointmentId=${params.row._id}`)}
+          >
+            Record
+          </Button>
+        </MuiTooltip>
+      ),
     },
   ];
+
+  // Redirecting (no user post-hydration) — render nothing to avoid a flash
+  // of the default "Welcome, Doctor" header before the redirect lands.
+  if (!user) return null;
 
   return (
     <AppShell title="Dashboard">

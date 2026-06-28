@@ -68,6 +68,10 @@ export default function PatientDashboard() {
     }
   }, []);
 
+  // Redirecting (no user post-hydration) — render nothing to avoid a flash
+  // of the default "Welcome, Patient" header before the redirect lands.
+  if (!user) return null;
+
   return (
     <AppShell title="Dashboard">
       <PageHeader
@@ -138,7 +142,10 @@ export default function PatientDashboard() {
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
                       <strong>Time:</strong>{' '}
-                      {new Date(appointment.appointmentDate).toLocaleTimeString()}
+                      {new Date(appointment.appointmentDate).toLocaleTimeString([], {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })}
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
                       <strong>Reason:</strong> {appointment.reason || 'N/A'}

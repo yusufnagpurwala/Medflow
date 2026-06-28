@@ -97,7 +97,7 @@ export default function CreateAppointment() {
   }, [selectedDoctor, selectedDate]);
 
   const isValid =
-    Boolean(selectedDoctor) && Boolean(selectedSlot) && reason.trim().length > 5;
+    Boolean(selectedDoctor) && Boolean(selectedSlot) && reason.trim().length >= 5;
 
   const handleSubmit = async () => {
     setError('');
@@ -163,10 +163,12 @@ export default function CreateAppointment() {
       );
     }
 
+    const openCount = slots.filter((s) => s.available).length;
+
     return (
       <Box>
         <Typography variant="subtitle2" sx={{ mb: 1, color: 'text.secondary' }}>
-          Select a time
+          Select a time · {openCount} of {slots.length} open
         </Typography>
         <Box
           sx={{
@@ -262,6 +264,7 @@ export default function CreateAppointment() {
               onChange={(newValue) => setSelectedDate(newValue)}
               disablePast
               minDate={dayjs()}
+              maxDate={dayjs().add(60, 'day')}
               slotProps={{ textField: { fullWidth: true } }}
             />
           </LocalizationProvider>
